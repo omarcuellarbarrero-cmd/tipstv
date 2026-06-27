@@ -17,7 +17,7 @@ if (currentUser) {
 // Obtén una en: https://aistudio.google.com/apikey
 // ============================================
 // La API Key se cargará desde el servidor (Coolify)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'PON_TU_API_KEY_AQUI';
+const GEMINI_API_KEY = 'AQ.Ab8RN6IIz00H-j556S5vBFdt7IeZUMuR_Xcu59g-CL_48Wljng';
 const GEMINI_MODEL = 'gemini-3.5-flash';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
 
