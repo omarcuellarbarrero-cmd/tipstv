@@ -1,0 +1,10 @@
+# Archivos de entorno (NO subir a GitHub)
+.env
+.env.local
+.env.*
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
