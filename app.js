@@ -60,7 +60,49 @@ document.getElementById('diagnosticForm').addEventListener('submit', async funct
     const brand = document.getElementById('brand').value.trim();
     const model = document.getElementById('model').value.trim();
     const symptom = document.getElementById('symptom').value.trim();
-
+document.getElementById('diagnosticForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    console.log('📤 Formulario enviado');
+    
+    if (!selectedTVType) {
+        alert('⚠️ Por favor, primero seleccione el tipo de televisor');
+        return;
+    }
+    
+    const brand = document.getElementById('brand').value.trim();
+    const model = document.getElementById('model').value.trim();
+    const symptom = document.getElementById('symptom').value.trim();
+    
+    console.log('📋 Datos:', { tvType: selectedTVType, brand, model, symptom });
+    
+    const resultSection = document.getElementById('resultSection');
+    const resultContent = document.getElementById('resultContent');
+    
+    resultSection.style.display = 'block';
+    resultContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>🔍 Consultando al asistente IA...</p></div>';
+    
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+    
+    try {
+        console.log('🔨 Construyendo prompt...');
+        const prompt = buildPrompt(selectedTVType, brand, model, symptom);
+        console.log('📝 Prompt (primeros 200 chars):', prompt.substring(0, 200));
+        
+        console.log('🤖 Llamando a Gemini...');
+        const response = await callGeminiAPI(prompt);
+        
+        console.log('✅ Respuesta recibida, formateando...');
+        const html = formatResponse(response);
+        console.log('📄 HTML generado (primeros 200 chars):', html.substring(0, 200));
+        
+        resultContent.innerHTML = html;
+        console.log('✅ Resultado mostrado en pantalla');
+        
+    } catch (error) {
+        console.error('🚨 Error en el submit:', error);
+        resultContent.innerHTML = '<div style="color:#e74c3c;text-align:center;padding:20px;"><p><strong>❌ Error:</strong> ' + error.message + '</p></div>';
+    }
+});
     // Preparar sección de resultados
     const resultSection = document.getElementById('resultSection');
     const resultContent = document.getElementById('resultContent');
@@ -122,34 +164,48 @@ function buildPrompt(tvType, brand, model, symptom) {
 // LLAMAR A LA API DE GEMINI
 // ============================================
 async function callGeminiAPI(prompt) {
-    const response = await fetch(GEMINI_API_URL + '?key=' + GEMINI_API_KEY, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.5,
-                topK: 32,
-                topP: 0.9,
-                maxOutputTokens: 4096,
-            }
-        })
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error('Error del servidor (código ' + response.status + '). Verifique su API Key.');
+    console.log('🔍 Iniciando llamada a Gemini...');
+    console.log('📡 URL:', GEMINI_API_URL);
+    console.log('🔑 API Key (primeros 10 chars):', GEMINI_API_KEY.substring(0, 10) + '...');
+    
+    try {
+        const response = await fetch(GEMINI_API_URL + '?key=' + GEMINI_API_KEY, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.5,
+                    maxOutputTokens: 4096
+                }
+            })
+        });
+        
+        console.log('📥 Respuesta recibida. Status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error del servidor:', errorText);
+            throw new Error('Error del servidor (código ' + response.status + ')');
+        }
+        
+        const data = await response.json();
+        console.log('✅ Datos JSON recibidos:', data);
+        
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            const text = data.candidates[0].content.parts[0].text;
+            console.log('📝 Texto extraído (primeros 100 chars):', text.substring(0, 100));
+            return text;
+        }
+        
+        console.error('❌ Estructura de respuesta inesperada:', data);
+        throw new Error('No se recibió respuesta válida de Gemini');
+        
+    } catch (error) {
+        console.error('🚨 Error en callGeminiAPI:', error);
+        throw error;
     }
-
-    const data = await response.json();
-
-    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
-        return data.candidates[0].content.parts[0].text;
-    }
-
-    throw new Error('No se recibió una respuesta válida de Gemini.');
 }
-
 // ============================================
 // FORMATEAR LA RESPUESTA DE GEMINI EN HTML
 // ============================================
