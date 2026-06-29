@@ -254,293 +254,133 @@ document.getElementById('logoutBtn').addEventListener('click', function () {
     }
 });
 // ============================================
-// 🔊 LECTOR DE VOZ (TEXT-TO-SPEECH)
+// 🔊 LECTOR DE VOZ SIMPLE
 // ============================================
 
-// Variables globales para el lector
 let speechUtterance = null;
 let isSpeaking = false;
-let isPaused = false;
-let availableVoices = [];
+let spanishVoice = null;
 
-// Elementos del DOM
-const btnPlayPause = document.getElementById('btnPlayPause');
-const btnStop = document.getElementById('btnStop');
-const voiceSelect = document.getElementById('voiceSelect');
-const rateSelect = document.getElementById('rateSelect');
-const voiceStatus = document.getElementById('voiceStatus');
+const btnVoice = document.getElementById('btnVoice');
+const voiceLabel = document.getElementById('voiceLabel');
 
-// ============================================
-// Cargar voces disponibles
-// ============================================
-function loadVoices() {
-    availableVoices = speechSynthesis.getVoices();
+// Cargar voces y buscar una en español
+function loadSpanishVoice() {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length === 0) return;
     
-    if (availableVoices.length === 0) return;
-    
-    // Limpiar selector
-    voiceSelect.innerHTML = '';
-    
-    // Filtrar voces en español primero
-    const spanishVoices = availableVoices.filter(v => 
-        v.lang.startsWith('es') || v.name.toLowerCase().includes('spanish')
-    );
-    const otherVoices = availableVoices.filter(v => 
-        !v.lang.startsWith('es') && !v.name.toLowerCase().includes('spanish')
-    );
-    
-    // Agregar voces en español primero
-    if (spanishVoices.length > 0) {
-        const optGroupSpanish = document.createElement('optgroup');
-        optGroupSpanish.label = '🇪🇸 Español';
-        spanishVoices.forEach((voice, index) => {
-            const option = document.createElement('option');
-            option.value = availableVoices.indexOf(voice);
-            option.textContent = `${voice.name} (${voice.lang})`;
-            if (index === 0) option.selected = true;
-            optGroupSpanish.appendChild(option);
-        });
-        voiceSelect.appendChild(optGroupSpanish);
-    }
-    
-    // Agregar otras voces
-    if (otherVoices.length > 0) {
-        const optGroupOther = document.createElement('optgroup');
-        optGroupOther.label = '🌍 Otros idiomas';
-        otherVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = availableVoices.indexOf(voice);
-            option.textContent = `${voice.name} (${voice.lang})`;
-            optGroupOther.appendChild(option);
-        });
-        voiceSelect.appendChild(optGroupOther);
-    }
-    
-    setStatus('✅ Voces cargadas: ' + availableVoices.length + ' disponibles', 'success');
+    // Prioridad: voz en español
+    spanishVoice = voices.find(v => v.lang.startsWith('es-MX')) ||
+                   voices.find(v => v.lang.startsWith('es-ES')) ||
+                   voices.find(v => v.lang.startsWith('es-US')) ||
+                   voices.find(v => v.lang.startsWith('es')) ||
+                   voices[0];
 }
 
-// Cargar voces cuando estén disponibles
 if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = loadVoices;
+    speechSynthesis.onvoiceschanged = loadSpanishVoice;
 }
-loadVoices(); // Intentar cargar inmediatamente
+setTimeout(loadSpanishVoice, 500);
 
-// ============================================
-// Función para mostrar mensajes de estado
-// ============================================
-function setStatus(message, type = '') {
-    voiceStatus.textContent = message;
-    voiceStatus.className = 'voice-status ' + type;
-    
-    // Limpiar mensaje después de 4 segundos (excepto errores)
-    if (type !== 'error') {
-        setTimeout(() => {
-            if (voiceStatus.textContent === message) {
-                voiceStatus.textContent = '';
-            }
-        }, 4000);
-    }
-}
-
-// ============================================
-// Extraer texto plano del HTML (quitar etiquetas)
-// ============================================
+// Extraer texto plano del HTML
 function getTextFromHTML(html) {
     const temp = document.createElement('div');
     temp.innerHTML = html;
-    
-    // Reemplazar saltos de línea y puntos por pausas naturales
     let text = temp.textContent || temp.innerText || '';
-    
-    // Limpiar espacios múltiples
     text = text.replace(/\s+/g, ' ').trim();
-    
-    // Limitar longitud (algunos navegadores tienen límites)
     if (text.length > 5000) {
         text = text.substring(0, 5000) + '... Fin del diagnóstico.';
     }
-    
     return text;
 }
 
-// ============================================
-// Botón Escuchar / Pausar
-// ============================================
-btnPlayPause.addEventListener('click', function() {
-    if (!isSpeaking) {
-        // Iniciar lectura
-        startSpeaking();
-    } else if (isPaused) {
-        // Reanudar
-        speechSynthesis.resume();
-        isPaused = false;
-        updatePlayButton(true);
-        setStatus('▶️ Reproduciendo...', 'success');
-    } else {
-        // Pausar
-        speechSynthesis.pause();
-        isPaused = true;
-        updatePlayButton(false);
-        setStatus('⏸️ En pausa', '');
-    }
-});
-
-// ============================================
-// Iniciar la lectura
-// ============================================
-function startSpeaking() {
-    const resultContent = document.getElementById('resultContent');
-    const text = getTextFromHTML(resultContent.innerHTML);
-    
-    if (!text || text.trim() === '') {
-        setStatus('❌ No hay texto para leer', 'error');
-        return;
-    }
-    
-    // Verificar soporte del navegador
-    if (!('speechSynthesis' in window)) {
-        setStatus('❌ Tu navegador no soporta lectura de voz. Usa Chrome o Edge.', 'error');
-        btnPlayPause.disabled = true;
-        return;
-    }
-    
-    // Cancelar cualquier lectura previa
-    speechSynthesis.cancel();
-    
-    // Crear nuevo utterance
-    speechUtterance = new SpeechSynthesisUtterance(text);
-    
-    // Configurar voz seleccionada
-    const selectedVoiceIndex = voiceSelect.value;
-    if (availableVoices[selectedVoiceIndex]) {
-        speechUtterance.voice = availableVoices[selectedVoiceIndex];
-    }
-    
-    // Configurar parámetros
-    speechUtterance.rate = parseFloat(rateSelect.value);
-    speechUtterance.pitch = 1;
-    speechUtterance.volume = 1;
-    speechUtterance.lang = 'es-ES';
-    
-    // Eventos
-    speechUtterance.onstart = function() {
-        isSpeaking = true;
-        isPaused = false;
-        updatePlayButton(true);
-        btnStop.disabled = false;
-        setStatus('🔊 Leyendo el diagnóstico...', 'success');
-    };
-    
-    speechUtterance.onend = function() {
-        resetVoiceState();
-        setStatus('✅ Lectura finalizada', 'success');
-    };
-    
-    speechUtterance.onerror = function(event) {
-        console.error('Error de voz:', event);
-        resetVoiceState();
-        if (event.error !== 'canceled') {
-            setStatus('❌ Error al leer: ' + event.error, 'error');
-        }
-    };
-    
-    speechUtterance.onpause = function() {
-        isPaused = true;
-        updatePlayButton(false);
-        setStatus('⏸️ En pausa', '');
-    };
-    
-    speechUtterance.onresume = function() {
-        isPaused = false;
-        updatePlayButton(true);
-        setStatus('▶️ Reproduciendo...', 'success');
-    };
-    
-    // Iniciar lectura
-    speechSynthesis.speak(speechUtterance);
-}
-
-// ============================================
-// Botón Detener
-// ============================================
-btnStop.addEventListener('click', function() {
-    speechSynthesis.cancel();
-    resetVoiceState();
-    setStatus('⏹️ Lectura detenida', '');
-});
-
-// ============================================
-// Actualizar estado del botón Play/Pause
-// ============================================
-function updatePlayButton(playing) {
-    if (playing) {
-        btnPlayPause.classList.add('playing');
-        btnPlayPause.querySelector('.voice-icon').textContent = '⏸️';
-        btnPlayPause.querySelector('.voice-label').textContent = 'Pausar';
-    } else {
-        btnPlayPause.classList.remove('playing');
-        btnPlayPause.querySelector('.voice-icon').textContent = '▶️';
-        btnPlayPause.querySelector('.voice-label').textContent = 'Reanudar';
-    }
-}
-
-// ============================================
-// Resetear estado del lector
-// ============================================
-function resetVoiceState() {
+// Resetear estado del botón
+function resetVoiceButton() {
     isSpeaking = false;
-    isPaused = false;
-    btnPlayPause.classList.remove('playing');
-    btnPlayPause.querySelector('.voice-icon').textContent = '🔊';
-    btnPlayPause.querySelector('.voice-label').textContent = 'Escuchar';
-    btnStop.disabled = true;
+    btnVoice.classList.remove('playing');
+    btnVoice.querySelector('.voice-icon-simple').textContent = '🔊';
+    voiceLabel.textContent = 'Escuchar diagnóstico';
 }
 
-// ============================================
-// Detener lectura al hacer "Nueva Búsqueda"
-// ============================================
-const originalNewSearchHandler = document.getElementById('newSearchBtn').onclick;
+// Botón único: Escuchar / Pausar / Reanudar
+btnVoice.addEventListener('click', function() {
+    // Verificar soporte
+    if (!('speechSynthesis' in window)) {
+        alert('Tu navegador no soporta lectura de voz. Usa Chrome o Edge.');
+        return;
+    }
+    
+    if (!isSpeaking) {
+        // ▶️ INICIAR LECTURA
+        const resultContent = document.getElementById('resultContent');
+        const text = getTextFromHTML(resultContent.innerHTML);
+        
+        if (!text || text.trim() === '') {
+            alert('No hay texto para leer.');
+            return;
+        }
+        
+        speechSynthesis.cancel();
+        speechUtterance = new SpeechSynthesisUtterance(text);
+        
+        if (spanishVoice) {
+            speechUtterance.voice = spanishVoice;
+        }
+        
+        speechUtterance.rate = 0.95;  // Velocidad normal
+        speechUtterance.pitch = 1;
+        speechUtterance.volume = 1;
+        speechUtterance.lang = 'es-ES';
+        
+        speechUtterance.onstart = function() {
+            isSpeaking = true;
+            btnVoice.classList.add('playing');
+            btnVoice.querySelector('.voice-icon-simple').textContent = '⏸️';
+            voiceLabel.textContent = 'Pausar';
+        };
+        
+        speechUtterance.onend = function() {
+            resetVoiceButton();
+        };
+        
+        speechUtterance.onerror = function(event) {
+            if (event.error !== 'canceled') {
+                console.error('Error de voz:', event);
+            }
+            resetVoiceButton();
+        };
+        
+        speechSynthesis.speak(speechUtterance);
+        
+    } else if (speechSynthesis.paused) {
+        // ▶️ REANUDAR
+        speechSynthesis.resume();
+        btnVoice.querySelector('.voice-icon-simple').textContent = '⏸️';
+        voiceLabel.textContent = 'Pausar';
+        
+    } else {
+        // ⏸️ PAUSAR
+        speechSynthesis.pause();
+        btnVoice.querySelector('.voice-icon-simple').textContent = '▶️';
+        voiceLabel.textContent = 'Reanudar';
+    }
+});
+
+// Detener al hacer nueva búsqueda
 document.getElementById('newSearchBtn').addEventListener('click', function() {
     speechSynthesis.cancel();
-    resetVoiceState();
+    resetVoiceButton();
 });
 
-// ============================================
-// Detener lectura al salir de la página
-// ============================================
+// Detener al salir de la página
 window.addEventListener('beforeunload', function() {
     speechSynthesis.cancel();
 });
 
-// ============================================
-// Workaround para bug de Chrome (se detiene después de 15 seg)
-// ============================================
-let resumeTimer = null;
-function startResumeTimer() {
-    resumeTimer = setInterval(() => {
-        if (isSpeaking && !isPaused && speechSynthesis.speaking) {
-            speechSynthesis.pause();
-            speechSynthesis.resume();
-        }
-    }, 10000);
-}
-
-// Iniciar workaround cuando empieza a hablar
-const originalOnStart = speechUtterance ? speechUtterance.onstart : null;
-window.addEventListener('load', function() {
-    // El workaround se activa automáticamente al hablar
-});
-
-// ============================================
-// Verificar soporte al cargar
-// ============================================
-window.addEventListener('load', function() {
-    if (!('speechSynthesis' in window)) {
-        setStatus('⚠️ Tu navegador no soporta lectura de voz', 'error');
-        btnPlayPause.disabled = true;
-        btnStop.disabled = true;
-    } else {
-        // Cargar voces después de un pequeño delay (algunos navegadores las cargan tarde)
-        setTimeout(loadVoices, 500);
+// Workaround para Chrome (bug de 15 segundos)
+setInterval(() => {
+    if (isSpeaking && speechSynthesis.speaking && !speechSynthesis.paused) {
+        speechSynthesis.pause();
+        speechSynthesis.resume();
     }
-});
+}, 10000);
