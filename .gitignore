@@ -1,13 +1,10 @@
-# Archivos de entorno con secretos (NO subir a GitHub)
+# Archivos con secretos (NO subir a GitHub)
+config.local.js
 .env
 .env.local
 .env.*
 
-# Logs
+# Otros
 *.log
-
-# Sistema operativo
 .DS_Store
 Thumbs.db
-desktop.ini
-config.local.js
