@@ -1,10 +1,13 @@
-# Archivos de entorno (NO subir a GitHub)
+# Archivos de entorno con secretos (NO subir a GitHub)
 .env
 .env.local
 .env.*
 
-# Node modules
-node_modules/
-
 # Logs
 *.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+config.local.js
