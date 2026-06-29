@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+        <!-- Favicon (versión cuadrada si la creaste) -->
+    <link rel="icon" type="image/png" href="assets/favicon.webp">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistente Técnico - Diagnóstico</title>
-    <link rel="icon" type="image/png" href="logo-oc.png">
+    <link rel="icon" type="image/png" href="logo-oc.webp">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -64,11 +66,43 @@
 
             <!-- Resultados -->
             <section class="card" id="resultSection" style="display: none;">
-                <h2>📋 Resultado del Diagnóstico</h2>
-                <div class="result-content" id="resultContent"></div>
-                <button id="newSearchBtn" class="btn-secondary">🔄 Nueva Búsqueda</button>
-            </section>
-
+    <h2>📋 Resultado del Diagnóstico</h2>
+    
+    <!-- 🔊 CONTROLES DE VOZ -->
+    <div class="voice-controls" id="voiceControls">
+        <div class="voice-buttons">
+            <button id="btnPlayPause" class="btn-voice btn-play" title="Leer en voz alta">
+                <span class="voice-icon">🔊</span>
+                <span class="voice-label">Escuchar</span>
+            </button>
+            <button id="btnStop" class="btn-voice btn-stop" title="Detener" disabled>
+                <span class="voice-icon">⏹️</span>
+                <span class="voice-label">Detener</span>
+            </button>
+        </div>
+        
+        <div class="voice-options">
+            <div class="voice-option">
+                <label for="voiceSelect">🎙️ Voz:</label>
+                <select id="voiceSelect" class="voice-select"></select>
+            </div>
+            <div class="voice-option">
+                <label for="rateSelect">⚡ Velocidad:</label>
+                <select id="rateSelect" class="voice-select">
+                    <option value="0.7">Lenta</option>
+                    <option value="0.9" selected>Normal</option>
+                    <option value="1.1">Rápida</option>
+                    <option value="1.3">Muy rápida</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="voice-status" id="voiceStatus"></div>
+    </div>
+    
+    <div class="result-content" id="resultContent"></div>
+    <button id="newSearchBtn" class="btn-secondary">🔄 Nueva Búsqueda</button>
+</section>
         </main>
 
         <footer class="app-footer">
