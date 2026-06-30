@@ -1,10 +1,5 @@
-# Archivos con secretos (NO subir a GitHub)
+# Archivos con secretos
+api.php
 config.local.js
 .env
 .env.local
-.env.*
-
-# Otros
-*.log
-.DS_Store
-Thumbs.db

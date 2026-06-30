@@ -12,18 +12,6 @@ if (currentUser) {
 }
 
 // ============================================
-// 🔧 CONFIGURACIÓN GROQ API
-// ============================================
-const GROQ_API_KEY = window.GROQ_API_KEY || '';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-// Verificación
-if (!GROQ_API_KEY) {
-    console.warn('⚠️ API Key de Groq no configurada');
-}
-
-// ============================================
 // 🎯 VARIABLES GLOBALES
 // ============================================
 let selectedTVType = null;
@@ -71,21 +59,48 @@ document.getElementById('diagnosticForm').addEventListener('submit', async funct
         const prompt = buildPrompt(selectedTVType, brand, model, symptom);
         console.log('📝 Prompt (primeros 200 chars):', prompt.substring(0, 200));
         
-        console.log('🤖 Llamando a Groq...');
-        const response = await callGroqAPI(prompt);
+    // ============================================
+// 🤖 LLAMAR AL PROXY PHP (que llama a Groq)
+// ============================================
+async function callGroqAPI(prompt) {
+    console.log('🔍 Iniciando llamada al proxy...');
+    console.log('📡 Modelo: llama-3.3-70b-versatile');
+    
+    try {
+        // Llamar a nuestro proxy PHP en lugar de Groq directamente
+        const response = await fetch('api.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: prompt
+            })
+        });
         
-        console.log('✅ Respuesta recibida, formateando...');
-        const html = formatResponse(response);
-        console.log('📄 HTML generado (primeros 200 chars):', html.substring(0, 200));
+        console.log('📥 Respuesta recibida. Status:', response.status);
         
-        resultContent.innerHTML = html;
-        console.log('✅ Resultado mostrado en pantalla');
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Error del proxy:', errorData);
+            throw new Error('Error del servidor: ' + (errorData.error || 'Código ' + response.status));
+        }
+        
+        const data = await response.json();
+        console.log('✅ Datos recibidos del proxy');
+        
+        if (data.success && data.text) {
+            console.log('📝 Texto extraído (primeros 100 chars):', data.text.substring(0, 100));
+            return data.text;
+        }
+        
+        throw new Error('Respuesta inesperada del servidor');
         
     } catch (error) {
-        console.error('🚨 Error en el submit:', error);
-        resultContent.innerHTML = '<div style="color:#e74c3c;text-align:center;padding:20px;"><p><strong>❌ Error:</strong> ' + error.message + '</p></div>';
+        console.error('🚨 Error en callGroqAPI:', error);
+        throw error;
     }
-});
+}
 
 // ============================================
 // 📝 CONSTRUIR PROMPT PARA GROQ
