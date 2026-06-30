@@ -88,8 +88,8 @@ document.getElementById('diagnosticForm').addEventListener('submit', async funct
         const prompt = buildPrompt(selectedTVType, brand, model, symptom);
         console.log('📝 Prompt (primeros 200 chars):', prompt.substring(0, 200));
         
-        console.log('🤖 Llamando a Gemini...');
-        const response = await callGeminiAPI(prompt);
+        console.log('🤖 Llamando a Grop...');
+        const response = await callGroqAPI(prompt);
         
         console.log('✅ Respuesta recibida, formateando...');
         const html = formatResponse(response);
@@ -135,7 +135,7 @@ document.getElementById('diagnosticForm').addEventListener('submit', async funct
 });
 
 // ============================================
-// CONSTRUIR EL PROMPT PARA GEMINI
+// CONSTRUIR EL PROMPT PARA GROQ
 // ============================================
 function buildPrompt(tvType, brand, model, symptom) {
     return (
@@ -161,53 +161,76 @@ function buildPrompt(tvType, brand, model, symptom) {
 }
 
 // ============================================
-// LLAMAR A LA API DE GEMINI
+// LLAMAR A LA API DE GROQ
 // ============================================
-async function callGeminiAPI(prompt) {
-    console.log('🔍 Iniciando llamada a Gemini...');
-    console.log('📡 URL:', GEMINI_API_URL);
-    console.log('🔑 API Key (primeros 10 chars):', GEMINI_API_KEY.substring(0, 10) + '...');
+// ============================================
+// CONFIGURACIÓN GROQ
+// ============================================
+const GROQ_API_KEY = window.GROQ_API_KEY || '';
+const GROQ_MODEL = 'llama-3.3-70b-versatile'; // Excelente para español
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+// ============================================
+// LLAMAR A GROQ API
+// ============================================
+async function callGroqAPI(prompt) {
+    console.log('🔍 Iniciando llamada a Groq...');
+    console.log('📡 Modelo:', GROQ_MODEL);
+    
+    if (!GROQ_API_KEY) {
+        throw new Error('API Key de Groq no configurada');
+    }
     
     try {
-        const response = await fetch(GEMINI_API_URL + '?key=' + GEMINI_API_KEY, {
+        const response = await fetch(GROQ_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + GROQ_API_KEY
+            },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.5,
-                    maxOutputTokens: 4096
-                }
+                model: GROQ_MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'Eres un asistente técnico experto en reparación de televisores. Respondes en español, de forma cordial, con pasos claros y numerados. Usas términos sencillos. No inventas datos.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.5,
+                max_tokens: 4096
             })
         });
         
         console.log('📥 Respuesta recibida. Status:', response.status);
         
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Error del servidor:', errorText);
-            throw new Error('Error del servidor (código ' + response.status + ')');
+            const errorData = await response.json();
+            console.error('❌ Error de Groq:', errorData);
+            throw new Error('Error de Groq: ' + (errorData.error?.message || 'Código ' + response.status));
         }
         
         const data = await response.json();
-        console.log('✅ Datos JSON recibidos:', data);
+        console.log('✅ Datos recibidos de Groq');
         
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-            const text = data.candidates[0].content.parts[0].text;
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            const text = data.choices[0].message.content;
             console.log('📝 Texto extraído (primeros 100 chars):', text.substring(0, 100));
             return text;
         }
         
-        console.error('❌ Estructura de respuesta inesperada:', data);
-        throw new Error('No se recibió respuesta válida de Gemini');
+        throw new Error('Respuesta inesperada de Groq');
         
     } catch (error) {
-        console.error('🚨 Error en callGeminiAPI:', error);
+        console.error('🚨 Error en callGroqAPI:', error);
         throw error;
     }
 }
 // ============================================
-// FORMATEAR LA RESPUESTA DE GEMINI EN HTML
+// FORMATEAR LA RESPUESTA DE GROQ EN HTML
 // ============================================
 function formatResponse(text) {
     let html = '';

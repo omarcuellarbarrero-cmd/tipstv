@@ -86,11 +86,17 @@
         </main>
 
         <footer class="app-footer">
-            <p>Asistente Técnico v1.0 — Powered by Gemini AI</p>
+            <p>Asistente Técnico v1.0 — Powered by Groq AI</p>
         </footer>
 
     </div>
-
+<!-- 🔐 API Key: En producción viene de Coolify, en local viene de config.local.js -->
+<script>
+    // Si no hay API Key configurada, usar placeholder (solo para que no falle el código)
+    if (!window.GROQ_API_KEY) {
+        window.GROQ_API_KEY = '';
+    }
+</script>
     <script src="app.js"></script>
 </body>
 </html>
