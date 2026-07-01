@@ -124,18 +124,7 @@ function buildPrompt(tvType, brand, model, symptom) {
         '8. Si no estás seguro, dilo claramente';
 }
 
-// ============================================
-// 🤖 LLAMAR A GROQ API
-// ============================================
-async function callGroqAPI(prompt) {
-    console.log('🔍 Iniciando llamada a Groq...');
-    console.log('📡 Modelo:', GROQ_MODEL);
-    console.log('🔑 API Key cargada:', GROQ_API_KEY ? '✅ Sí (' + GROQ_API_KEY.substring(0, 8) + '...)' : '❌ NO');
-    
-    if (!GROQ_API_KEY) {
-        throw new Error('API Key de Groq no configurada. Verifica app.html');
-    }
-    
+ 
     try {
         const response = await fetch(GROQ_API_URL, {
             method: 'POST',
