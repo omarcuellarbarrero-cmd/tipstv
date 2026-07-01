@@ -59,15 +59,51 @@ document.getElementById('diagnosticForm').addEventListener('submit', async funct
         const prompt = buildPrompt(selectedTVType, brand, model, symptom);
         console.log('📝 Prompt (primeros 200 chars):', prompt.substring(0, 200));
         
-    // ============================================
-// 🤖 LLAMAR AL PROXY PHP (que llama a Groq)
+        console.log('🤖 Llamando al proxy...');
+        const response = await callGroqAPI(prompt);
+        
+        console.log('✅ Respuesta recibida, formateando...');
+        const html = formatResponse(response);
+        console.log('📄 HTML generado (primeros 200 chars):', html.substring(0, 200));
+        
+        resultContent.innerHTML = html;
+        console.log('✅ Resultado mostrado en pantalla');
+        
+    } catch (error) {
+        console.error('🚨 Error en el submit:', error);
+        resultContent.innerHTML = '<div style="color:#e74c3c;text-align:center;padding:20px;"><p><strong>❌ Error:</strong> ' + error.message + '</p></div>';
+    }
+});
+
+// ============================================
+// 📝 CONSTRUIR PROMPT
+// ============================================
+function buildPrompt(tvType, brand, model, symptom) {
+    return 'Eres un asistente técnico experto en reparación de televisores. ' +
+        'Un técnico reparador de electrodomésticos necesita tu orientación para diagnosticar un televisor.\n\n' +
+        'DATOS DEL TELEVISOR:\n' +
+        '- Tipo: ' + tvType + '\n' +
+        '- Marca: ' + brand + '\n' +
+        '- Modelo: ' + model + '\n' +
+        '- Síntoma: ' + symptom + '\n\n' +
+        'INSTRUCCIONES PARA TU RESPUESTA:\n' +
+        '1. Saluda cordialmente al colega técnico\n' +
+        '2. Usa lenguaje sencillo y claro\n' +
+        '3. Organiza el diagnóstico en pasos numerados\n' +
+        '4. NO inventes datos técnicos\n' +
+        '5. Sé RESUMIDO (máximo 300 palabras)\n' +
+        '6. Incluye advertencia de seguridad eléctrica\n' +
+        '7. Responde en español\n' +
+        '8. Si no estás seguro, dilo claramente';
+}
+
+// ============================================
+// 🤖 LLAMAR AL PROXY PHP (api.php)
 // ============================================
 async function callGroqAPI(prompt) {
     console.log('🔍 Iniciando llamada al proxy...');
-    console.log('📡 Modelo: llama-3.3-70b-versatile');
     
     try {
-        // Llamar a nuestro proxy PHP en lugar de Groq directamente
         const response = await fetch('api.php', {
             method: 'POST',
             headers: {
@@ -95,78 +131,6 @@ async function callGroqAPI(prompt) {
         }
         
         throw new Error('Respuesta inesperada del servidor');
-        
-    } catch (error) {
-        console.error('🚨 Error en callGroqAPI:', error);
-        throw error;
-    }
-}
-
-// ============================================
-// 📝 CONSTRUIR PROMPT PARA GROQ
-// ============================================
-function buildPrompt(tvType, brand, model, symptom) {
-    return 'Eres un asistente técnico experto en reparación de televisores. ' +
-        'Un técnico reparador de electrodomésticos necesita tu orientación para diagnosticar un televisor.\n\n' +
-        'DATOS DEL TELEVISOR:\n' +
-        '- Tipo: ' + tvType + '\n' +
-        '- Marca: ' + brand + '\n' +
-        '- Modelo: ' + model + '\n' +
-        '- Síntoma: ' + symptom + '\n\n' +
-        'INSTRUCCIONES PARA TU RESPUESTA:\n' +
-        '1. Saluda cordialmente al colega técnico\n' +
-        '2. Usa lenguaje sencillo y claro\n' +
-        '3. Organiza el diagnóstico en pasos numerados\n' +
-        '4. NO inventes datos técnicos\n' +
-        '5. Sé RESUMIDO (máximo 300 palabras)\n' +
-        '6. Incluye advertencia de seguridad eléctrica\n' +
-        '7. Responde en español\n' +
-        '8. Si no estás seguro, dilo claramente';
-}
-
- 
-    try {
-        const response = await fetch(GROQ_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + GROQ_API_KEY
-            },
-            body: JSON.stringify({
-                model: GROQ_MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'Eres un asistente técnico experto en reparación de televisores. Respondes en español, de forma cordial, con pasos claros y numerados. Usas términos sencillos. No inventas datos.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                temperature: 0.5,
-                max_tokens: 4096
-            })
-        });
-        
-        console.log('📥 Respuesta recibida. Status:', response.status);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('❌ Error de Groq:', errorData);
-            throw new Error('Error de Groq: ' + (errorData.error?.message || 'Código ' + response.status));
-        }
-        
-        const data = await response.json();
-        console.log('✅ Datos recibidos de Groq');
-        
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            const text = data.choices[0].message.content;
-            console.log('📝 Texto extraído (primeros 100 chars):', text.substring(0, 100));
-            return text;
-        }
-        
-        throw new Error('Respuesta inesperada de Groq');
         
     } catch (error) {
         console.error('🚨 Error en callGroqAPI:', error);
